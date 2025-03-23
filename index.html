@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Космическая Колония</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        
+        body {
+            margin: 0;
+            background: #000 url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 200 200"><rect fill="%23000" width="200" height="200"/><g fill="%23147aad" opacity="0.6"><circle cx="100" cy="20" r="1"/><circle cx="20" cy="180" r="1.5"/><circle cx="150" cy="80" r="1"/><circle cx="80" cy="140" r="2"/></g></svg>');
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .star {
+            position: fixed;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .planet-card {
+            background: rgba(10, 25, 47, 0.9);
+            border: 1px solid #147aad;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 10px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .planet-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 20px #147aad;
+        }
+
+        .status-bar {
+            height: 25px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .status-fill {
+            height: 100%;
+            transition: width 0.5s ease, background 0.3s;
+        }
+
+        .base-visual {
+            width: 300px;
+            height: 300px;
+            margin: 20px auto;
+            position: relative;
+            background: url('data:image/svg+xml,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="%23222" stroke="%23147aad" stroke-width="0.5"/></svg>');
+            background-size: cover;
+            animation: pulse 4s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .action-btn {
+            background: linear-gradient(45deg, #147aad, #14ad8d);
+            border: none;
+            padding: 12px 25px;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 5px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px #147aad;
+        }
+
+        .event-message {
+            background: rgba(20, 122, 173, 0.2);
+            padding: 15px;
+            border-left: 4px solid #147aad;
+            margin: 10px 0;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center; text-shadow: 0 0 10px #147aad;">🚀 КОСМИЧЕСКАЯ КОЛОНИЯ</h1>
+        
+        <div id="planetSelection" class="planet-grid"></div>
+        
+        <div id="gameInterface" style="display: none;">
+            <div class="base-visual"></div>
+            
+            <div class="status-container">
+                <h3>🔋 СОСТОЯНИЕ КОЛОНИИ:</h3>
+                <div class="status-item">
+                    <span>❤️ Здоровье:</span>
+                    <div class="status-bar">
+                        <div class="status-fill" style="width: 100%; background: #ff4444"></div>
+                    </div>
+                </div>
+                <div class="status-item">
+                    <span>🌫️ Кислород:</span>
+                    <div class="status-bar">
+                        <div class="status-fill" style="width: 100%; background: #44aaff"></div>
+                    </div>
+                </div>
+                <div class="status-item">
+                    <span>⚡ Энергия:</span>
+                    <div class="status-bar">
+                        <div class="status-fill" style="width: 100%; background: #44ff44"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="actionsPanel"></div>
+            <div id="eventsLog"></div>
+        </div>
+    </div>
+
+<script>
+const planets = {
+    Mars: { 
+        gravity: 0.38, 
+        difficulty: 2,
+        description: "Пыльные равнины с тонкой атмосферой",
+        color: "#ad4832"
+    },
+    Europa: { 
+        gravity: 0.13, 
+        difficulty: 4,
+        description: "Ледяной мир с подповерхностным океаном",
+        color: "#6b8cff"
+    },
+    Kepler22b: { 
+        gravity: 1.2, 
+        difficulty: 5,
+        description: "Супер-Земля в обитаемой зоне",
+        color: "#32a852"
+    },
+    Titan: { 
+        gravity: 0.14, 
+        difficulty: 3,
+        description: "Ледяной спутник с углеводородными озёрами",
+        color: "#d4a849"
+    },
+    ProximaB: { 
+        gravity: 1.1, 
+        difficulty: 6,
+        description: "Ближайшая экзопланета с радиационными штормами",
+        color: "#ad324a"
+    }
+};
+
+let colony = {
+    health: 100,
+    oxygen: 100,
+    energy: 100,
+    day: 0,
+    upgrades: {
+        oxygenGenerator: 1,
+        energyCore: 1,
+        shield: 1
+    }
+};
+
+function createStars() {
+    const container = document.body;
+    for(let i = 0; i < 200; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.width = Math.random() * 3 + 'px';
+        star.style.height = star.style.width;
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.animationDelay = Math.random() * 2 + 's';
+        container.appendChild(star);
+    }
+}
+
+function initGame() {
+    createStars();
+    const grid = document.getElementById('planetSelection');
+    Object.entries(planets).forEach(([name, data]) => {
+        const card = document.createElement('div');
+        card.className = 'planet-card';
+        card.innerHTML = `
+            <h3 style="color: ${data.color}">${name}</h3>
+            <p>${data.description}</p>
+            <p>🌀 Гравитация: ${data.gravity}g</p>
+            <p>⚠️ Сложность: ${'★'.repeat(data.difficulty)}</p>
+        `;
+        card.onclick = () => startColony(name);
+        grid.appendChild(card);
+    });
+}
+
+function startColony(planet) {
+    currentPlanet = planet;
+    document.getElementById('planetSelection').style.display = 'none';
+    document.getElementById('gameInterface').style.display = 'block';
+    gameLoop();
+}
+
+function updateStatus() {
+    document.querySelectorAll('.status-fill').forEach((bar, index) => {
+        const values = [colony.health, colony.oxygen, colony.energy];
+        bar.style.width = values[index] + '%';
+    });
+}
+
+function showEvent(message) {
+    const eventLog = document.getElementById('eventsLog');
+    const eventElement = document.createElement('div');
+    eventElement.className = 'event-message';
+    eventElement.textContent = `[День ${colony.day}] ${message}`;
+    eventLog.prepend(eventElement);
+}
+
+function gameLoop() {
+    colony.day++;
+    
+    // Обновление ресурсов
+    colony.oxygen -= 3 * planets[currentPlanet].difficulty / colony.upgrades.oxygenGenerator;
+    colony.energy -= 2 * planets[currentPlanet].difficulty / colony.upgrades.energyCore;
+    
+    // Проверка событий
+    if(Math.random() < 0.3) {
+        const events = [
+            {msg: "Обнаружены полезные ископаемые! +20 энергии", effect: () => colony.energy += 20},
+            {msg: "Метеоритный дождь! -30 здоровья", effect: () => colony.health -= 30},
+            {msg: "Солнечная вспышка! -25 энергии", effect: () => colony.energy -= 25},
+            {msg: "Найдены запасы кислорода! +40 кислорода", effect: () => colony.oxygen += 40}
+        ];
+        const event = events[Math.floor(Math.random() * events.length)];
+        showEvent(event.msg);
+        event.effect();
+    }
+    
+    // Ограничение значений
+    colony.health = Math.min(Math.max(colony.health, 0), 100);
+    colony.oxygen = Math.min(Math.max(colony.oxygen, 0), 100);
+    colony.energy = Math.min(Math.max(colony.energy, 0), 100);
+    
+    updateStatus();
+    checkGameOver();
+    
+    if(colony.health > 0) setTimeout(gameLoop, 2000);
+}
+
+function checkGameOver() {
+    if(colony.health <= 0 || colony.oxygen <= 0 || colony.energy <= 0) {
+        showEvent(`💀 Колония погибла на ${currentPlanet} после ${colony.day} дней`);
+        document.getElementById('actionsPanel').innerHTML = '';
+    }
+}
+
+initGame();
+</script>
+</body>
+</html>
